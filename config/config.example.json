@@ -1,0 +1,7 @@
+{
+    "KEY_VAULT_URL": "https://your-key-vault.vault.azure.net/",
+    "STORAGE_ACCOUNT_URL": "https://your-storage-account.blob.core.windows.net",
+    "CONTAINER_NAME": "backend-artifacts",
+    "AKS_CLUSTER_NAME": "backend-aks-cluster",
+    "AKS_RESOURCE_GROUP": "backend-rg"
+}
