@@ -1,0 +1,55 @@
+name: CI/CD Pipeline for Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          repository: <gitea-org>/<repo>  # Replace with your Gitea repository
+          token: ${{ secrets.GITEA_TOKEN }}  # Gitea personal access token
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r app/requirements.txt
+
+      - name: Run HelloWorld tests
+        run: |
+          python -m pytest app/tests/
+
+      - name: Build Docker image
+        run: |
+          docker build -t bkimcr25x7z.azurecr.io/backend-im:${{ github.sha }} .
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Push to Azure Container Registry
+        run: |
+          az acr login --name bkimcr25x7z
+          docker push bkimcr25x7z.azurecr.io/backend-im:${{ github.sha }}
+
+      - name: Deploy to AKS (Test)
+        run: |
+          az aks get-credentials --resource-group backend-rg --name bkimak25x7z
+          python scripts/kube_handler.py trigger_deployment helloworld.py
+
+      - name: Deploy to AKS (Production) if tests pass
+        if: success()
+        run: |
+          python scripts/kube_handler.py deploy_to_production helloworld_fixed.py
+          kubectl apply -f app/deployments/templates/fastapi/deployment.yaml
+          kubectl apply -f app/deployments/templates/fastapi/service.yaml
+          kubectl apply -f app/deployments/templates/fastapi/hpa.yaml
